@@ -1,17 +1,14 @@
-var player, fazAContagem, ready = false;
+var player, fazAContagem, ready = false, carregando = false;
 
 var socket;
 
 function onYouTubeIframeAPIReady() {
 	//socket setup
-<<<<<<< HEAD
 	//socket = io.connect('http://177.32.120.55:3000');                      //RODRIGO
 	//socket = io.connect('http://189.62.21.220:3000');                      //ARTHUR
 	socket = io.connect('http://localhost:3000');                          //LOCAL
-=======
 	//socket = io.connect('http://189.62.21.220:3000');
-	socket = io.connect('http://177.32.120.55:3000');
->>>>>>> 84c38247ed48cd831ea6b897ce95d7aa26e805ab
+	//socket = io.connect('http://177.32.120.55:3000');
 	socket.on('message', handleMessage);
 	socket.on('playVideo', playVideo);
 	socket.on('updateCounter', updateCounter);
@@ -36,9 +33,13 @@ function onYouTubeIframeAPIReady() {
 		//height: 400,
 		playerVars: { 
 			color: 'white',
+			'controls': 0, 
+	        'autohide': 1,
+	        'showinfo' : 0
 		},
 		events: {
 			onReady: initialize
+			onStateChange: onPlayerStateChange
 		}
 	});
 }
@@ -82,8 +83,9 @@ function playVideo () {
 //carrega o video no player
 function loadVideo (videoURLInput) {
 	ready = false;
+	carregando = true;
 	player.loadVideoById(videoURLInput);
-	player.stopVideo();
+	player.playVideo();
 	document.getElementById('video-placeholder').style.display = "inline";
 	prepareButttons();
 }
@@ -123,6 +125,14 @@ function disableRady (data) {
 	                                                        	'<p></p>' +
 	                                                		'</form>' +
 	                                                '</div>';
+}
+
+function onPlayerStateChange(event) {
+    if (event.data == YT.PlayerState.PLAYING && carregando) {
+    	//player.seekTo(0);
+		player.pauseVideo();
+		carregando = false;
+    }
 }
 
 function initialize() {
