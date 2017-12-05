@@ -4,11 +4,9 @@ var socket;
 
 function onYouTubeIframeAPIReady() {
 	//socket setup
-	//socket = io.connect('http://177.32.120.55:3000');                      //RODRIGO
+	socket = io.connect('http://177.32.120.55:3000');                      //RODRIGO
 	//socket = io.connect('http://189.62.21.220:3000');                      //ARTHUR
-	socket = io.connect('http://localhost:3000');                          //LOCAL
-	//socket = io.connect('http://189.62.21.220:3000');
-	//socket = io.connect('http://177.32.120.55:3000');
+	//socket = io.connect('http://localhost:3000');                          //LOCAL
 	socket.on('message', handleMessage);
 	socket.on('playVideo', playVideo);
 	socket.on('updateCounter', updateCounter);
@@ -21,7 +19,7 @@ function onYouTubeIframeAPIReady() {
 			            									'<label for="videoURLLabel" style="font-size:25px;">Coloque o ID do video</label>' + '<hr>' +
 			            									'<input type="text" style="width: 50%;margin: auto" class="form-control input-lg text-center" id="videoURLInput" placeholder="https://www.youtube.com/watch?v=...">' +
 		          										'</div>' + '<hr>' +
-														'<a href="#" class="btn btn-primary btn-lg onclick="readID()">Carregar Video</a>' +
+														'<a href="#" class="btn btn-primary btn-lg" onclick="readID()">Carregar Video</a>' +
 														'<p></p>' +
 													'</form>'
 	//some com o player vazio
@@ -38,7 +36,7 @@ function onYouTubeIframeAPIReady() {
 	        'showinfo' : 0
 		},
 		events: {
-			onReady: initialize
+			onReady: initialize,
 			onStateChange: onPlayerStateChange
 		}
 	});
@@ -51,7 +49,8 @@ function handleMessage (data) {
 }
 
 //le o texto do input
-function readID () { 
+function readID () {
+	console.log("aaaa");
 	var videoURL = document.getElementById('videoURLInput').value;
 	socket.emit('message', videoURL);
 	if (videoURL.length != 11){
