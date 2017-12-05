@@ -4,9 +4,9 @@ var socket;
 
 function onYouTubeIframeAPIReady() {
 	//socket setup
-	socket = io.connect('http://177.32.120.55:3000');                      //RODRIGO
+	//socket = io.connect('http://177.32.120.55:3000');                      //RODRIGO
 	//socket = io.connect('http://189.62.21.220:3000');                      //ARTHUR
-	//socket = io.connect('http://localhost:3000');                          //LOCAL
+	socket = io.connect('http://localhost:3000');                          //LOCAL
 	socket.on('message', handleMessage);
 	socket.on('playVideo', playVideo);
 	socket.on('updateCounter', updateCounter);
