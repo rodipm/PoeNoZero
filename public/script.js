@@ -30,10 +30,7 @@ function onYouTubeIframeAPIReady() {
 		//width: 600,
 		//height: 400,
 		playerVars: { 
-			color: 'white',
-			'controls': 0, 
-	        'autohide': 1,
-	        'showinfo' : 0
+			color: 'white'
 		},
 		events: {
 			onReady: initialize,
@@ -128,7 +125,7 @@ function disableRady (data) {
 
 function onPlayerStateChange(event) {
     if (event.data == YT.PlayerState.PLAYING && carregando) {
-    	//player.seekTo(0);
+    	player.seekTo(0);
 		player.pauseVideo();
 		carregando = false;
     }
