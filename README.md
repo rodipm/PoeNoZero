@@ -8,3 +8,7 @@ Os arquivos client-side estão na pasta public.
 Quando for abrir o servidor pelo seu pc, mudar a linha 7 do "script.js" para o seu IP extrerno: socket = io.connect('http://seuip:3000');
 
 teste
+
+
+
+yo
