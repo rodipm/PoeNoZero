@@ -1,4 +1,4 @@
-var player, fazAContagem, ready = false, carregando = false;
+var player, fazAContagem, ready = false, carregando = false, myID;
 
 var socket;
 
@@ -7,11 +7,16 @@ function onYouTubeIframeAPIReady() {
 	socket = io.connect('http://177.32.120.55:3000');                      //RODRIGO
 	//socket = io.connect('http://189.62.21.220:3000');                      //ARTHUR
 	//socket = io.connect('http://localhost:3000');                          //LOCAL
-	socket.on('message', handleMessage);
+
+	//socket events
+	socket.on('yourID', yourID)
+	socket.on('loadVideo', loadVideo);
 	socket.on('playVideo', playVideo);
 	socket.on('updateCounter', updateCounter);
 	socket.on('disableReady', disableRady);
-
+	socket.on('roomMessage', handleRoomMessage);
+	socket.on('createRoomSuccess', roomCreated);
+	socket.on('showRooms', showRooms);
 
 	//seta os botoes de carregamento de video
 	document.getElementById('control').innerHTML = '<form id="videoURLInputForm">' +
@@ -33,31 +38,59 @@ function onYouTubeIframeAPIReady() {
 			color: 'white'
 		},
 		events: {
-			onReady: initialize,
 			onStateChange: onPlayerStateChange
 		}
 	});
 }
 
-//lida com as mensagens recebidas pelo servidor
-function handleMessage (data) {
-	console.log("Input: " + data);
-	loadVideo(data);
-}
-
+///HTML STUFF
 //le o texto do input
 function readID () {
-	console.log("aaaa");
 	var videoURL = document.getElementById('videoURLInput').value;
 	socket.emit('message', videoURL);
 	if (videoURL.length != 11){
 		alert("Por favor, o ID \""+ videoURL + "\" está incorreto.\nPor favor digite conforme o exemplo:\nUTfTd4yHAlg");
 		document.getElementById('videoURLInput').style.borderColor = "red";
 
-	}else
-		loadVideo(videoURL);
+	}else {
+		createRoom(videoURL);
+	}
 
 }
+
+//altera a div controls para reveber os botoes de ready
+function prepareButttons() {
+	document.getElementById('control').innerHTML = '<form id="controls">' +
+														'<a href="#" class="btn btn-primary" onclick="clientReady()">Ready</a>' +
+														'<p></p>' +
+													'</form>';
+
+}
+
+//funcao chamada pelo servidor para cada vez que alguem da ready atualizar a contagem de pessoas prontas/clientes
+function updateCounter (data) {
+	console.log(data.Clients);
+	console.log(data.ReadyCounter);
+	if (ready)
+		document.getElementById('control').innerHTML =  '<div>' +
+															'<form id="controls">' +
+	                                                        	'<a href="#" class="btn btn-primary" disabled>' + data.ReadyCounter + '/' + data.Clients + '</a>' +
+	                                                        	'<p></p>' +
+	                                                    	'</form>' +
+	                                                    '</div>';
+}
+
+//desabilita o botao de ready localmente
+function disableRady (data) {
+	document.getElementById('control').innerHTML =  '<div>' +
+															'<form id="controls">' +
+	                                                        	'<a href="#" class="btn btn-primary" disabled>' + data.ReadyCounter + '/' + data.Clients + '</a>' +
+	                                                        	'<p></p>' +
+	                                                		'</form>' +
+	                                                '</div>';
+}
+
+///VIDEO STUFF
 
 //funcao chamada pelo servidor para dar play em todos os videos ao mesmo tempo
 function playVideo () {
@@ -78,6 +111,7 @@ function playVideo () {
 
 //carrega o video no player
 function loadVideo (videoURLInput) {
+	console.log("katiau");
 	ready = false;
 	carregando = true;
 	player.loadVideoById(videoURLInput);
@@ -86,14 +120,6 @@ function loadVideo (videoURLInput) {
 	prepareButttons();
 }
 
-//altera a div controls para reveber os botoes de ready
-function prepareButttons() {
-	document.getElementById('control').innerHTML = '<form id="controls">' +
-														'<a href="#" class="btn btn-primary" onclick="clientReady()">Ready</a>' +
-														'<p></p>' +
-													'</form>';
-
-}
 
 //envia mensagem de ready do clinete para o servidor
 function clientReady () {
@@ -101,29 +127,8 @@ function clientReady () {
 	ready = true;
 }
 
-//funcao chamada pelo servidor para cada vez que alguem da ready ter controle sobre o contador de 
-function updateCounter (data) {
-	console.log(data.Clients);
-	console.log(data.ReadyCounter);
-	if (ready)
-		document.getElementById('control').innerHTML =  '<div>' +
-															'<form id="controls">' +
-	                                                        	'<a href="#" class="btn btn-primary" disabled>' + data.ReadyCounter + '/' + data.Clients + '</a>' +
-	                                                        	'<p></p>' +
-	                                                    	'</form>' +
-	                                                    '</div>';
-}
-
-function disableRady (data) {
-	document.getElementById('control').innerHTML =  '<div>' +
-															'<form id="controls">' +
-	                                                        	'<a href="#" class="btn btn-primary" disabled>' + data.ReadyCounter + '/' + data.Clients + '</a>' +
-	                                                        	'<p></p>' +
-	                                                		'</form>' +
-	                                                '</div>';
-}
-
-function onPlayerStateChange(event) {
+//handler do evento de playerStateChange
+function onPlayerStateChange (event) {
     if (event.data == YT.PlayerState.PLAYING && carregando) {
     	player.seekTo(0);
 		player.pauseVideo();
@@ -131,32 +136,46 @@ function onPlayerStateChange(event) {
     }
 }
 
-function initialize() {
-	/*updateTimerDisplay();
-	//updateProgressBar();
-
-	clearInterval(time_update_interval);
-
-	time_update_interval = setInterval(function() {
-		updateTimerDisplay();
-		//updateProgressBar();
-	}, 1000);*/
+function handleMessage (data) {
+	console.log("Input: " + data);
+	loadVideo(data);
 }
 
-/*
-function updateTimerDisplay(){
-	document.getElementById('current-time').innerHTML = formatTime(player.getCurrentTime());
-	document.getElementById('duration').innerHTML = formatTime(player.getDuration());
+//ROOMS STUFF
+//recieve my id when connected
+function yourID (ID) {
+	myID = ID;
+}
+//caller
+function createRoom (videoURL) {
+	console.log("createRoom do cliente");
+	socket.emit('createRoom', videoURL);
+}
+//handler
+function roomCreated (data) {
+	console.log("roomCreatedCliente");
+	enterRoom(myID);
+}
+function showRooms (data) {
+	document.getElementById('rooms').innerHTML = '';
+	for (var i = 0; i < data.rooms.length; i++) {
+		document.getElementById('rooms').innerHTML += '<a href="#" class="btn btn-primary" onclick="enterRoom("' + data.rooms[i].id + '")">Sala' + i + '</a>';
+	}
+}
+//caller
+function enterRoom (id) {
+	console.log("enterRoomCliente");
+	socket.emit('enterRoom', id);
+}
+//caller
+function leaveRoom () {
+	socket.emit('leaveRoom');
+}
+//handler
+function handleRoomMessage (message) {
+	console.log("mensagem para a sala" + message);
 }
 
-function formatTime(time) {
-	time = Math.round(time);
-
-	var minutes = Math.floor(time/60);
-	seconds = time - minutes*60;
-
-	seconds = seconds < 10 ? '0' + seconds : seconds;
-
-	return minutes + ":" + seconds;
+function mensagemParaSala () {
+	socket.emit('mensagemParaSala');
 }
-*/
