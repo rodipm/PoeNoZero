@@ -1,16 +1,113 @@
 var player, fazAContagem, ready = false, carregando = false;
+var myID;
+var rooms = [];
 
 var socket;
+class Client {
+	constructor (clientID) {
+		this.clientID = clientID;
+		this.currentRoom = '';
+		this.isReady = false;
+	}
+
+	getClientID () {
+		return this.clientID;
+	}
+
+	getCurrentRoom () {
+		return this.currentRoom;
+	}
+
+	getIsReady () {
+		return this.isReady;
+	}
+
+	setCurrentRoom (currentRoom) {
+		this.currentRoom = currentRoom;
+	}
+
+	setIsReady (isReady) {
+		this.isReady = isReady;
+	}
+}
+
+class Room {
+	constructor (roomID, videoURL) {
+		this.roomID = roomID;
+		this.numberOfClients = 0;
+		this.videoURL = videoURL;
+		this.numberOfClientsReady = 0;
+		this.clientsInRoom = new Array();
+	}
+
+	getRoomID () {
+		return this.roomID;
+	}
+
+	getNumberOfClients () {
+		return this.numberOfClients;
+	}
+
+	getVideoURL () {
+		return this.videoURL;
+	}
+
+	getNumberOfClientsReady () {
+		var clientsReady = 0;
+		for (var i = 0; i < this.clientsInRoom.length; i++) {
+			if (clientsInRoom[i].getIsReady)
+				clientsReady++;
+		}
+	}
+
+	getClientsInRoom () {
+		return this.getClientsInRoom;
+	}
+
+	addClient (client, socket) {
+			console.log("adding client to room");
+		if (!hasClient(Client)) {
+			this.clientsInRoom.push(Client);
+			this.numberOfClients = this.clientsInRoom.length;
+			socket.join(this.getRoomID);
+			client.setIsReady(false);
+		}
+	}
+
+	removeClient (client, socket) {
+		for (var i = 0; i < this.clientsInRoom.length; i++)
+			if (this.clientsInRoom[i] = client) {
+				socket.leave(this.getRoomID);
+				this.clientsInRoom.splice(i, 1);
+				this.numberOfClients = this.clientsInRoom.length;
+			}
+	}
+
+	hasClient (client) {
+		console.log("hasClient");
+		console.log(this.clientsInRoom.length);
+		for (var i = 0; i < this.clientsInRoom.length; i++)
+			if (this.clientsInRoom[i].getClientID == client.getClientID)
+				return true;
+		return false;
+	}
+}
 
 function onYouTubeIframeAPIReady() {
 	//socket setup
 	socket = io.connect('http://177.32.120.55:3000');                      //RODRIGO
 	//socket = io.connect('http://189.62.21.220:3000');                      //ARTHUR
 	//socket = io.connect('http://localhost:3000');                          //LOCAL
-	socket.on('message', handleMessage);
+
+	//emit handlers
 	socket.on('playVideo', playVideo);
 	socket.on('updateCounter', updateCounter);
 	socket.on('disableReady', disableRady);
+	//handlers
+	socket.on('greetings', greetings);
+	socket.on('createRoomSucces', createRoomSucces);
+	socket.on('updateRooms', updateRooms);
+	socket.on('loadVideo', loadVideo);
 
 
 	//seta os botoes de carregamento de video
@@ -33,29 +130,20 @@ function onYouTubeIframeAPIReady() {
 			color: 'white'
 		},
 		events: {
-			onReady: initialize,
 			onStateChange: onPlayerStateChange
 		}
 	});
 }
 
-//lida com as mensagens recebidas pelo servidor
-function handleMessage (data) {
-	console.log("Input: " + data);
-	loadVideo(data);
-}
-
 //le o texto do input
 function readID () {
-	console.log("aaaa");
 	var videoURL = document.getElementById('videoURLInput').value;
-	socket.emit('message', videoURL);
 	if (videoURL.length != 11){
 		alert("Por favor, o ID \""+ videoURL + "\" está incorreto.\nPor favor digite conforme o exemplo:\nUTfTd4yHAlg");
 		document.getElementById('videoURLInput').style.borderColor = "red";
 
 	}else
-		loadVideo(videoURL);
+		socket.emit('createRoom', videoURL);
 
 }
 
@@ -131,32 +219,33 @@ function onPlayerStateChange(event) {
     }
 }
 
-function initialize() {
-	/*updateTimerDisplay();
-	//updateProgressBar();
-
-	clearInterval(time_update_interval);
-
-	time_update_interval = setInterval(function() {
-		updateTimerDisplay();
-		//updateProgressBar();
-	}, 1000);*/
+function greetings (data) {
+	myID = data.ClientID;
+	rooms = data.Rooms;
+	console.log ("geetings: " + myID + ', ' + rooms);
+	updateRooms(data.Rooms);
 }
 
-/*
-function updateTimerDisplay(){
-	document.getElementById('current-time').innerHTML = formatTime(player.getCurrentTime());
-	document.getElementById('duration').innerHTML = formatTime(player.getDuration());
+function createRoomSucces (newRooms) {
+	socket.emit('enterRoom', myID);
+	updateRooms(newRooms);
 }
 
-function formatTime(time) {
-	time = Math.round(time);
+function updateRooms (newRooms) {
+	rooms = newRooms;
 
-	var minutes = Math.floor(time/60);
-	seconds = time - minutes*60;
+	document.getElementById('rooms').innerHTML = '';
 
-	seconds = seconds < 10 ? '0' + seconds : seconds;
-
-	return minutes + ":" + seconds;
+	for (var i = 0; i < rooms.length; i++) {
+		document.getElementById('rooms').innerHTML = '<a href="#" class="btn btn-primary" onclick="enterRoom(' + rooms[i].getRoomID() + ')">Sala 1</a>';
+	}
 }
-*/
+
+function enterRoom (roomID) {
+	socket.emit('enterRoom', roomID);
+}
+
+function clientReady() {
+	console.log("client Ready");
+	socket.emit('ready');
+}
