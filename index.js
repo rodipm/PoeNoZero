@@ -2,60 +2,69 @@
 var express = require ('express');
 var app = express();
 var server = app.listen(3000, "0.0.0.0");
-
 app.use(express.static('public'));
-
+var socket = require('socket.io');
+var io = socket(server);
 console.log("Server ON");
 
-var socket = require('socket.io');
+const Client = require('./Client.js');
+const Room = require('./Room.js');
 
-var io = socket(server);
-
+var clients = new Array();
+var rooms = new Array();
 
 //server
-var clients = 0;
-var readyCounter = 0;
-var videoReady = false;
-
 io.sockets.on('connection', newConnection);
 
 function newConnection (socket) {
+	var newClient = new Client(socket.id);
+	clients.push(newClient);
 
-	clients++;
-	console.log("new connection: " + socket.id);
-	console.log(clients);
+	console.log("New client connected: " + newClient.getClientID());
 	
 	//event listeners
-	socket.on('message', msg);
 	socket.on('disconnect', clientDisconnection);
-	socket.on('ready', clientReady);
-
-	//event handlers
-	function msg (data) {
-		console.log("Input console" + data);
-		socket.broadcast.emit('message', data);
-		videoReady = false;
-		readyCounter = 0;
-	}
-		
+	socket.on('createRoom', createRoom);
+	socket.on('enterRoom', enterRoom);
+	
 	function clientDisconnection () {
-		clients--;
-		console.log(clients);
+		for (var i = 0; i < clients.length; i++) {
+			if (clients[i].getClientID() == newClient.getClientID()) {
+				console.log("Client disconnect: " + newClient.getClientID());
+				delete clients.splice(i, 1);
+			}
+		}
 	}
 
-	function clientReady () {
-		readyCounter++;
-		if (!videoReady)
-			videoReady = true;
+	function createRoom (roomName) {
+		console.log("tentando cirar sala");
+		for (var i = 0; i < rooms.length; i++) {
+			if (rooms[i].getRoomID() == newClient.getClientID()) {
+				return;
+			}
+		}
 
-		socket.broadcast.emit('updateCounter', {Clients: clients, ReadyCounter: readyCounter});
-		socket.emit('updateCounter', {Clients: clients, ReadyCounter: readyCounter});
-		socket.emit('disableReady', {Clients: clients, ReadyCounter: readyCounter});
+		console.log("Criando sala: " + roomName);
+		var newRoom = new Room(newClient.getClientID(), roomName);
+		rooms.push(newRoom);
 
-		if (readyCounter >= clients && videoReady) {
-			socket.broadcast.emit('playVideo');
-			socket.emit('playVideo');
-			readyCounter = 0;
+		var newRooms = new Array();
+		for (var i = 0; i < rooms.length; i++) {
+			newRooms.push({roomName: rooms[i].getRoomName(), roomID: rooms[i].getRoomID()});
+		}
+
+		socket.emit('updateRooms', newRooms);
+		socket.broadcast.emit('updateRooms', newRooms);
+	}
+
+	function enterRoom (roomID) {
+		console.log("entrando em sala");
+		for (var i = 0; i < rooms.length; i++) {
+			console.log(rooms[i].getRoomName());
+			if (rooms[i].getRoomID() == roomID){
+				rooms[i].addClient(newClient);
+				socket.join(room[i].getRoomID());
+			}
 		}
 	}
 }
