@@ -1,6 +1,6 @@
 var player, fazAContagem, ready = false, carregando = false;
 var myID;
-var rooms = [];
+var rooms = new Array();
 
 var socket;
 class Client {
@@ -141,10 +141,8 @@ function readID () {
 	if (videoURL.length != 11){
 		alert("Por favor, o ID \""+ videoURL + "\" está incorreto.\nPor favor digite conforme o exemplo:\nUTfTd4yHAlg");
 		document.getElementById('videoURLInput').style.borderColor = "red";
-
-	}else
+	} else
 		socket.emit('createRoom', videoURL);
-
 }
 
 //funcao chamada pelo servidor para dar play em todos os videos ao mesmo tempo
@@ -232,12 +230,15 @@ function createRoomSucces (newRooms) {
 }
 
 function updateRooms (newRooms) {
+	console.log(newRooms);
 	rooms = newRooms;
+	console.log(rooms[0]);
 
 	document.getElementById('rooms').innerHTML = '';
 
 	for (var i = 0; i < rooms.length; i++) {
-		document.getElementById('rooms').innerHTML = '<a href="#" class="btn btn-primary" onclick="enterRoom(' + rooms[i].getRoomID() + ')">Sala 1</a>';
+		var rid = rooms[i].roomID;
+		document.getElementById('rooms').innerHTML = '<a href="#" class="btn btn-primary" onclick="enterRoom(' + rid + ')">Sala 1</a>';
 	}
 }
 

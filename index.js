@@ -59,40 +59,47 @@ class Room {
 	getNumberOfClientsReady () {
 		var clientsReady = 0;
 		for (var i = 0; i < this.clientsInRoom.length; i++) {
-			if (clientsInRoom[i].getIsReady)
+			if (this.clientsInRoom[i].getIsReady)
 				clientsReady++;
 		}
 	}
 
 	getClientsInRoom () {
-		return this.getClientsInRoom;
+		return this.clientsInRoom;
 	}
 
-	addClient (client, socket) {
-		if (!this.hasClient(Client)) {
+	addClient (clientID, socket) {
+		var thisClient = new Client(clientID);
+		if (!this.hasClient(clientID)) {
 			console.log("adicionando cliente a sala");
-			this.clientsInRoom.push(Client);
+			this.clientsInRoom.push(thisClient);
 			this.numberOfClients = this.clientsInRoom.length;
 			socket.join(this.roomID);
-			client.setIsReady(false);
+			thisClient.setIsReady(false);
+			console.log(this.clientsInRoom[0]);
 		}
 	}
 
-	removeClient (client, socket) {
+	removeClient (clientID, socket) {
+		var thisClient = new Client(clientID);
 		for (var i = 0; i < this.clientsInRoom.length; i++)
-			if (this.clientsInRoom[i] == client) {
+			if (this.clientsInRoom[i] == thisClient) {
 				socket.leave(this.roomID);
 				this.clientsInRoom.splice(i, 1);
 				this.numberOfClients = this.clientsInRoom.length;
 			}
 	}
 
-	hasClient (thisClient) {
-		console.log("hasClient? " + thisClient.getClientID());
+	hasClient (clientID) {
+		var thisClient = new Client(clientID);
+		console.log("hasClient? ");
 		console.log(this.clientsInRoom.length);
-		for (var i = 0; i < this.clientsInRoom.length; i++)
-			if (this.clientsInRoom[i].getClientID() == thisClient.getClientID())
+		for (var i = 0; i < this.clientsInRoom.length; i++) {
+			if (this.clientsInRoom[i].getClientID() == thisClient.getClientID()){
+				console.log("encontrou!");
 				return true;
+			}
+		}
 		return false;
 	}
 }
@@ -120,7 +127,7 @@ function newConnection (socket) {
 	//dealing with client disconnection
 	function clientDisconnection () {
 		for (var i = 0; i < rooms.length; i++) {
-			if (rooms[i].hasClient(newClient)) {
+			if (rooms[i].hasClient(newClient.getClientID())) {
 				rooms[i].removeClient(newClient, socket);
 				if (rooms[i].getNumberOfClients() == 0) {
 					delete rooms.splice(i, 1);
@@ -156,8 +163,8 @@ function newConnection (socket) {
 			console.log(rooms[i].getRoomID());
 			if (rooms[i].getRoomID() == roomID) {
 				console.log("achou");
-				if (!rooms[i].hasClient(newClient)) {
-					rooms[i].addClient(newClient, socket);
+				if (!rooms[i].hasClient(newClient.getClientID())) {
+					rooms[i].addClient(newClient.getClientID(), socket);
 					socket.emit('loadVideo', rooms[i].videoURL);
 				}
 			}
@@ -169,10 +176,10 @@ function newConnection (socket) {
 		newClient.setIsReady(true);
 
 		for (var i = 0; i < rooms.length; i++) {
-			if (rooms[i].hasClient(newClient)) {
+			if (rooms[i].hasClient(newClient.getClientID())) {
 				console.log("esta na sala");
-				console.log(clientRoom.getNumberOfClientsReady());
-				io.to(rooms[i].getRoomID()).emit('updateCounter', {Clients: clientRoom.getNumberOfClients(), ReadyCounter: clientRoom.getNumberOfClientsReady()});
+				console.log(rooms[i].getNumberOfClientsReady());
+				io.to(rooms[i].getRoomID()).emit('updateCounter', {Clients: rooms[i].getNumberOfClients(), ReadyCounter: rooms[i].getNumberOfClientsReady()});
 				socket.emit('disableReady', {Clients: rooms[i].getNumberOfClients(), ReadyCounter: rooms[i].getNumberOfClientsReady()});
 
 				if (rooms[i].getNumberOfClientsReady() >= rooms[i].getNumberOfClients()) {
