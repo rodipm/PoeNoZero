@@ -1,6 +1,6 @@
 var socket, rooms, player, carregando, ready, inRoom, fazAContagem, inRoomID, link;
 
-var url = 'http://localhost:3000';
+var url = 'http://177.32.120.55:3000';
 
 function onYouTubeIframeAPIReady() {
 	socket = io.connect(url);
@@ -18,10 +18,10 @@ function onYouTubeIframeAPIReady() {
 													  	'<div class="form-group">' +
 			            									'<label for="videoURLLabel" style="font-size:25px;">Coloque o link ou ID do video</label>' + '<hr>' +
 			            									'<input type="text" style="width: 50%;margin: auto" class="form-control input-lg text-center" id="videoURLInput" placeholder="https://www.youtube.com/watch?v=...">' +
-		          										'</div>' + '<hr>' +
-													//	'<a href="#" class="btn btn-primary btn-lg" onclick="createRoom()">Carregar Video</a>' +
-														'<input type="submit" class="btn btn-primary btn-lg" onclick="createRoom()" value="Carregar Video">' +
-													
+		          										'</div>' + 
+		          										'<hr>' +
+														'<input type="button" class="btn btn-primary btn-lg" onclick="createRoom()" value="Carregar Video">' +
+														'<hr>' + 
 													'</form>'
 	//some com o player vazio
 	document.getElementById('video-placeholder').style.display = "none";
@@ -84,7 +84,14 @@ function updateRooms (newRooms) {
 	console.log(rooms);
 	document.getElementById('rooms').innerHTML = '';
 	for (var i = 0; i < rooms.length; i++) {
-		document.getElementById('rooms').innerHTML += '<a href="#" class="btn btn-primary btn-lg" onclick="enterRoom(\'' + rooms[i].roomID + '\')">Sala: ' + rooms[i].roomID + '</a>';
+		document.getElementById('rooms').innerHTML += '<div class="well">'+
+						                              '<h6>Room ID: ' + rooms[i].roomID + '</h6>'+
+						                              //'<p><span class="label label-info">' + status + '</span></p>'+
+						                              '<h3>' + rooms[i].roomID + '</h3>'+
+						                              //'<p><span class="glyphicon glyphicon-time"></span> ' + severity + ' '+
+						                              //'<span class="glyphicon glyphicon-user"></span> ' + assignedTo + '</p>'+
+						                              '<a href="#" class="btn btn-primary btn-lg" onclick="enterRoom(\'' + rooms[i].roomID + '\')">Entrar' + '</a>' +
+						                              '</div>';
 	}
 }
 
