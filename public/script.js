@@ -22,24 +22,22 @@ function onYouTubeIframeAPIReady() {
 
 //lida com as mensagens recebidas pelo servidor
 function handleMessage (data) {
-	console.log("Input: " + data);
-	loadVideo(data);
+	console.log("Voce esta na sala: " + data);
 }
 
 //le o texto do input
 function createRoom () {
-	var roomName = document.getElementById('videoURLInput').value;
-	console.log(roomName);
-	socket.emit('createRoom', roomName);
+	var videoID = document.getElementById('videoURLInput').value;
+	socket.emit('createRoom', videoID);
 }
 
 function updateRooms (newRooms) {
-	console.log("updating...");
+	console.log("Updating...");
 	rooms = newRooms;
 	console.log(rooms);
 	document.getElementById('rooms').innerHTML = '';
 	for (var i = 0; i < rooms.length; i++) {
-		document.getElementById('rooms').innerHTML += '<a href="#" class="btn btn-primary btn-lg" onclick="enterRoom(\'' + rooms[i].roomID + '\')">Sala: ' + rooms[i].roomName + '</a>';
+		document.getElementById('rooms').innerHTML += '<a href="#" class="btn btn-primary btn-lg" onclick="enterRoom(\'' + rooms[i].roomID + '\')">Sala: ' + rooms[i].roomID + '</a>';
 	}
 }
 

@@ -36,21 +36,21 @@ function newConnection (socket) {
 		}
 	}
 
-	function createRoom (roomName) {
-		console.log("tentando cirar sala");
+	function createRoom (videoID) {
+		console.log("Tentando cirar sala");
 		for (var i = 0; i < rooms.length; i++) {
 			if (rooms[i].getRoomID() == newClient.getClientID()) {
 				return;
 			}
 		}
 
-		console.log("Criando sala: " + roomName);
-		var newRoom = new Room(newClient.getClientID(), roomName);
+		console.log("Criando sala: " + newClient.getClientID());
+		var newRoom = new Room(newClient.getClientID(), videoID);
 		rooms.push(newRoom);
 
 		var newRooms = new Array();
 		for (var i = 0; i < rooms.length; i++) {
-			newRooms.push({roomName: rooms[i].getRoomName(), roomID: rooms[i].getRoomID()});
+			newRooms.push({roomID: rooms[i].getRoomID()});
 		}
 
 		socket.emit('updateRooms', newRooms);
@@ -58,12 +58,11 @@ function newConnection (socket) {
 	}
 
 	function enterRoom (roomID) {
-		console.log("entrando em sala");
 		for (var i = 0; i < rooms.length; i++) {
-			console.log(rooms[i].getRoomName());
-			if (rooms[i].getRoomID() == roomID){
+			if (rooms[i].getRoomID() == roomID && !rooms[i].hasClient(newClient)){
 				rooms[i].addClient(newClient);
-				socket.join(room[i].getRoomID());
+				socket.join(rooms[i].getRoomID());
+				socket.to(rooms[i].getRoomID()).emit('message', rooms[i].getRoomID());
 			}
 		}
 	}
