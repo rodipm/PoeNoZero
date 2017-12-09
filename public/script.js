@@ -1,6 +1,6 @@
 var socket, rooms, player, carregando, ready, inRoom, fazAContagem, inRoomID, link;
 
-var url = 'http://177.32.120.55:3000';
+var url = 'http://localhost:3000';
 
 function onYouTubeIframeAPIReady() {
 	socket = io.connect(url);
@@ -14,13 +14,14 @@ function onYouTubeIframeAPIReady() {
 	socket.on('reloadPage', reloadPage);
 
 	//seta os botoes de carregamento de video
-	document.getElementById('control').innerHTML = '<form id="videoURLInputForm">' +
+	document.getElementById('control').innerHTML = '<form id="videoURLInputForm" action="#">' +
 													  	'<div class="form-group">' +
-			            									'<label for="videoURLLabel" style="font-size:25px;">Coloque o ID do video</label>' + '<hr>' +
+			            									'<label for="videoURLLabel" style="font-size:25px;">Coloque o link ou ID do video</label>' + '<hr>' +
 			            									'<input type="text" style="width: 50%;margin: auto" class="form-control input-lg text-center" id="videoURLInput" placeholder="https://www.youtube.com/watch?v=...">' +
 		          										'</div>' + '<hr>' +
-														'<a href="#" class="btn btn-primary btn-lg" onclick="createRoom()">Carregar Video</a>' +
-														'<p></p>' +
+													//	'<a href="#" class="btn btn-primary btn-lg" onclick="createRoom()">Carregar Video</a>' +
+														'<input type="submit" class="btn btn-primary btn-lg" onclick="createRoom()" value="Carregar Video">' +
+													
 													'</form>'
 	//some com o player vazio
 	document.getElementById('video-placeholder').style.display = "none";
@@ -48,13 +49,31 @@ function updateClient (data) {
 
 //le o texto do input
 function createRoom () {
+	var pos;
 	var videoURL = document.getElementById('videoURLInput').value;
+	if(videoURL.substring(0,4)=="http" || videoURL.substring(0,4)=="www." || videoURL.substring(0,4)=="yout"){
+		pos = videoURL.indexOf("=",0);
+		videoURL = videoURL.substring(pos+1,pos+12);
+	}
+	
 
-	//if (videoURL.length != 11){
-		//alert("Por favor, o ID \""+ videoURL + "\" está incorreto.\nPor favor digite conforme o exemplo:\nUTfTd4yHAlg");
-		//document.getElementById('videoURLInput').style.borderColor = "red";
+	if (videoURL.length != 11){
+		document.getElementById('alerts2').innerHTML =   '<hr>' + 
+	                                                '<div class="alert alert-success" role="alert">' + 
+	                                                	'<strong>' +
+	                                                		'Erro!' +
+	                                                	'</strong>' +
+	                                                	' O link ' + '<strong>' + videoURL + '</strong>' +' está incorreto. Por favor digite o ID ou o link do video correctamente.' +
+ 	                                                '</div>';
+		window.setTimeout(function() {
+	  	  $(".alert").fadeTo(500, 0).slideUp(500, function(){
+	        $(this).remove(); 
+	  	  });
+		}, 6000);
 
-	//} else
+		document.getElementById('videoURLInput').style.borderColor = "red";
+
+	} else
 		socket.emit('createRoom', videoURL);
 }
 
@@ -173,5 +192,16 @@ function copy () {
 	var linkCopy = document.getElementById('roomURL');
 	linkCopy.select();
 	document.execCommand("Copy");
-	document.getElementById('alerts').innerHTML =   '<hr>' + '<div class="alert alert-success fade in">' + '<p>' + 'Link copiado com sucesso' + '<p>' + '</div>';
+	document.getElementById('alerts').innerHTML =   '<hr>' + 
+	                                                '<div class="alert alert-success" role="alert">' + 
+	                                                	'<strong>' +
+	                                                		'Sucesso!' +
+	                                                	'</strong>' +
+	                                                	' O link foi copiado!' +
+ 	                                                '</div>';
+		window.setTimeout(function() {
+	    $(".alert").fadeTo(500, 0).slideUp(500, function(){
+	        $(this).remove(); 
+	    });
+	}, 2000);
 }
