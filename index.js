@@ -72,7 +72,7 @@ function newConnection (socket) {
 				newClient.setInRoom(true);
 				newClient.setInRoomID(roomID);
 				socket.join(rooms[i].getRoomID());
-				socket.emit('updateClient', {ready: newClient.getClientReady(), inRoom: newClient.getInRoom(), inRoomID: newClient.getInRoomID()});
+				updateClient();
 				socket.emit('loadVideo', rooms[i].getVideoID());
 				return;
 			}
@@ -88,7 +88,7 @@ function newConnection (socket) {
 				newClient.setInRoom(false);
 				newClient.setInRoomID('');
 				socket.emit('reloadPage');
-				socket.emit('updateClient', {ready: newClient.getClientReady(), inRoom: newClient.getInRoom(), inRoomID: newClient.getInRoomID()});
+				updateClient();
 
 				var updateCounters = {
 					readyCounter: rooms[i].clientsReady(), 
@@ -115,7 +115,7 @@ function newConnection (socket) {
 
 	function ready () {
 		newClient.setClientReady(true);
-		socket.emit('updateClient', {ready: newClient.getClientReady(), inRoom: newClient.getInRoom(), inRoomID: newClient.getInRoomID()});
+		updateClient();
 		for (var i = 0; i < rooms.length; i++) {
 			if (rooms[i].hasClient(newClient)) {
 				var updateCounters = {
@@ -129,5 +129,9 @@ function newConnection (socket) {
 				io.in(rooms[i].getRoomID()).emit('playVideo');
 			}
 		}
+	}
+
+	function updateClient () {
+		socket.emit('updateClient', {ready: newClient.getClientReady(), inRoom: newClient.getInRoom(), inRoomID: newClient.getInRoomID(), myID: newClient.getClientID()});
 	}
 }

@@ -1,4 +1,4 @@
-var socket, rooms, player, carregando, ready, inRoom, fazAContagem, inRoomID, link;
+var socket, rooms, player, carregando, ready, inRoom, fazAContagem, inRoomID, link ,myID, videoPlaying;
 
 var url = 'http://177.32.120.55:3000';
 
@@ -27,10 +27,9 @@ function onYouTubeIframeAPIReady() {
 	document.getElementById('video-placeholder').style.display = "none";
 
 	player = new YT.Player('video-placeholder', {
-		//width: 600,
-		//height: 400,
 		playerVars: { 
-			color: 'white'
+			color: 'white',
+			controls: '0'
 		},
 		events: {
 			onReady: onPlayerReady,
@@ -44,6 +43,7 @@ function updateClient (data) {
 	ready = data.ready;
 	inRoom = data.inRoom;
 	inRoomID = data.inRoomID;
+	myID = data.myID;
 	link = url + "#?" + inRoomID;
 }
 
@@ -102,6 +102,7 @@ function enterRoom (roomID) {
 
 //funcao chamada pelo servidor para dar play em todos os videos ao mesmo tempo
 function playVideo () {
+	videoPlaying = true;
 	var tempoRestante = 3;
 
 	clearInterval(fazAContagem);
@@ -113,12 +114,16 @@ function playVideo () {
 				clearInterval(fazAContagem);
 				document.getElementById('contagem').innerHTML = ''; 
 				player.playVideo();
+				if (myID == inRoomID) {
+					prepareVideoControlsOwner();
+				}
 			}
 		}, 1000);
 }
 
 //carrega o video no player
 function loadVideo (videoURLInput) {
+	videoPlaying = false;
 	carregando = true;
 	player.loadVideoById(videoURLInput);
 	player.playVideo();
@@ -147,10 +152,12 @@ function disableReady (data) {
 }
 
 function onPlayerStateChange (event) {
-    if (event.data == YT.PlayerState.PLAYING && carregando) {
+    if ((event.data == YT.PlayerState.PLAYING && carregando) || (event.data == YT.PlayerState.PLAYING && !videoPlaying)) {
     	player.seekTo(0);
 		player.pauseVideo();
 		carregando = false;
+    } else if (event.data == YT.PlayerState.PAUSED && !carregando && videoPlaying) {
+    	player.playVideo();
     }
 }
 
@@ -211,4 +218,8 @@ function copy () {
 	        $(this).remove(); 
 	    });
 	}, 2000);
+}
+
+function prepareVideoControlsOwner () {
+	document.getElementById('videoControlsOwner').innerHTML = 'pau';
 }
