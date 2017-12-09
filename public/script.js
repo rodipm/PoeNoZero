@@ -1,17 +1,17 @@
-var player, fazAContagem, ready = false, carregando = false;
+var socket, rooms, player, carregando, ready, inRoom, fazAContagem, inRoomID, link;
 
-var socket;
+var url = 'http://177.32.120.55:3000';
 
 function onYouTubeIframeAPIReady() {
-	//socket setup
-	socket = io.connect('http://177.32.120.55:3000');                      //RODRIGO
-	//socket = io.connect('http://189.62.21.220:3000');                      //ARTHUR
-	//socket = io.connect('http://localhost:3000');                          //LOCAL
-	socket.on('message', handleMessage);
-	socket.on('playVideo', playVideo);
-	socket.on('updateCounter', updateCounter);
-	socket.on('disableReady', disableRady);
+	socket = io.connect(url);
 
+	socket.on('updateRooms', updateRooms);
+	socket.on('playVideo', playVideo);
+	socket.on('loadVideo', loadVideo);
+	socket.on('updateCounter', updateCounter);
+	socket.on('disableReady', disableReady);
+	socket.on('updateClient', updateClient);
+	socket.on('reloadPage', reloadPage);
 
 	//seta os botoes de carregamento de video
 	document.getElementById('control').innerHTML = '<form id="videoURLInputForm">' +
@@ -19,13 +19,12 @@ function onYouTubeIframeAPIReady() {
 			            									'<label for="videoURLLabel" style="font-size:25px;">Coloque o ID do video</label>' + '<hr>' +
 			            									'<input type="text" style="width: 50%;margin: auto" class="form-control input-lg text-center" id="videoURLInput" placeholder="https://www.youtube.com/watch?v=...">' +
 		          										'</div>' + '<hr>' +
-														'<a href="#" class="btn btn-primary btn-lg" onclick="readID()">Carregar Video</a>' +
+														'<a href="#" class="btn btn-primary btn-lg" onclick="createRoom()">Carregar Video</a>' +
 														'<p></p>' +
 													'</form>'
 	//some com o player vazio
 	document.getElementById('video-placeholder').style.display = "none";
 
-	//seta o player do YT pela framwork
 	player = new YT.Player('video-placeholder', {
 		//width: 600,
 		//height: 400,
@@ -33,30 +32,46 @@ function onYouTubeIframeAPIReady() {
 			color: 'white'
 		},
 		events: {
-			onReady: initialize,
+			onReady: onPlayerReady,
 			onStateChange: onPlayerStateChange
 		}
 	});
+
 }
 
-//lida com as mensagens recebidas pelo servidor
-function handleMessage (data) {
-	console.log("Input: " + data);
-	loadVideo(data);
+function updateClient (data) {
+	ready = data.ready;
+	inRoom = data.inRoom;
+	inRoomID = data.inRoomID;
+	link = url + "#?" + inRoomID;
 }
 
 //le o texto do input
-function readID () {
-	console.log("aaaa");
+function createRoom () {
 	var videoURL = document.getElementById('videoURLInput').value;
-	socket.emit('message', videoURL);
-	if (videoURL.length != 11){
-		alert("Por favor, o ID \""+ videoURL + "\" está incorreto.\nPor favor digite conforme o exemplo:\nUTfTd4yHAlg");
-		document.getElementById('videoURLInput').style.borderColor = "red";
 
-	}else
-		loadVideo(videoURL);
+	//if (videoURL.length != 11){
+		//alert("Por favor, o ID \""+ videoURL + "\" está incorreto.\nPor favor digite conforme o exemplo:\nUTfTd4yHAlg");
+		//document.getElementById('videoURLInput').style.borderColor = "red";
 
+	//} else
+		socket.emit('createRoom', videoURL);
+}
+
+function updateRooms (newRooms) {
+	if (inRoom)
+		return;
+	rooms = newRooms;
+	console.log(rooms);
+	document.getElementById('rooms').innerHTML = '';
+	for (var i = 0; i < rooms.length; i++) {
+		document.getElementById('rooms').innerHTML += '<a href="#" class="btn btn-primary btn-lg" onclick="enterRoom(\'' + rooms[i].roomID + '\')">Sala: ' + rooms[i].roomID + '</a>';
+	}
+}
+
+function enterRoom (roomID) {
+	console.log ("Tentando entrar em: " + roomID);
+	socket.emit('enterRoom', roomID);
 }
 
 //funcao chamada pelo servidor para dar play em todos os videos ao mesmo tempo
@@ -78,12 +93,12 @@ function playVideo () {
 
 //carrega o video no player
 function loadVideo (videoURLInput) {
-	ready = false;
 	carregando = true;
 	player.loadVideoById(videoURLInput);
 	player.playVideo();
 	document.getElementById('video-placeholder').style.display = "inline";
 	prepareButttons();
+	prepareVideoControls();
 }
 
 //altera a div controls para reveber os botoes de ready
@@ -92,38 +107,20 @@ function prepareButttons() {
 														'<a href="#" class="btn btn-primary" onclick="clientReady()">Ready</a>' +
 														'<p></p>' +
 													'</form>';
+	document.getElementById('rooms').innerHTML = '';
 
 }
 
-//envia mensagem de ready do clinete para o servidor
-function clientReady () {
-	socket.emit('ready');
-	ready = true;
-}
-
-//funcao chamada pelo servidor para cada vez que alguem da ready ter controle sobre o contador de 
-function updateCounter (data) {
-	console.log(data.Clients);
-	console.log(data.ReadyCounter);
-	if (ready)
-		document.getElementById('control').innerHTML =  '<div>' +
-															'<form id="controls">' +
-	                                                        	'<a href="#" class="btn btn-primary" disabled>' + data.ReadyCounter + '/' + data.Clients + '</a>' +
-	                                                        	'<p></p>' +
-	                                                    	'</form>' +
-	                                                    '</div>';
-}
-
-function disableRady (data) {
+function disableReady (data) {
 	document.getElementById('control').innerHTML =  '<div>' +
 															'<form id="controls">' +
-	                                                        	'<a href="#" class="btn btn-primary" disabled>' + data.ReadyCounter + '/' + data.Clients + '</a>' +
+	                                                        	'<a href="#" class="btn btn-primary" disabled>' + data.readyCounter + '/' + data.clients + '</a>' +
 	                                                        	'<p></p>' +
 	                                                		'</form>' +
 	                                                '</div>';
 }
 
-function onPlayerStateChange(event) {
+function onPlayerStateChange (event) {
     if (event.data == YT.PlayerState.PLAYING && carregando) {
     	player.seekTo(0);
 		player.pauseVideo();
@@ -131,32 +128,50 @@ function onPlayerStateChange(event) {
     }
 }
 
-function initialize() {
-	/*updateTimerDisplay();
-	//updateProgressBar();
-
-	clearInterval(time_update_interval);
-
-	time_update_interval = setInterval(function() {
-		updateTimerDisplay();
-		//updateProgressBar();
-	}, 1000);*/
+function clientReady () {
+	socket.emit('ready');
+	ready = true;
 }
 
-/*
-function updateTimerDisplay(){
-	document.getElementById('current-time').innerHTML = formatTime(player.getCurrentTime());
-	document.getElementById('duration').innerHTML = formatTime(player.getDuration());
+//funcao chamada pelo servidor para cada vez que alguem da ready ter controle sobre o contador de 
+function updateCounter (data) {
+	if (ready)
+		document.getElementById('control').innerHTML =  '<div>' +
+															'<form id="controls">' +
+	                                                        	'<a href="#" class="btn btn-primary" disabled>' + data.readyCounter + '/' + data.clients + '</a>' +
+	                                                        	'<p></p>' +
+	                                                    	'</form>' +
+	                                                    '</div>';
 }
 
-function formatTime(time) {
-	time = Math.round(time);
+function prepareVideoControls () {
+	console.log(link);
+	document.getElementById('videoControls').innerHTML =	'<hr>' +
+															'<div style="margin:0">' + 
+																'<input type="text" style="width: 50%;margin: auto" class="form-control input-lg text-center" id="roomURL" value=\"' + link + '\" onclick="copy()" readonly>' + 
+														    '</div>' +
+														    '<hr>';
 
-	var minutes = Math.floor(time/60);
-	seconds = time - minutes*60;
-
-	seconds = seconds < 10 ? '0' + seconds : seconds;
-
-	return minutes + ":" + seconds;
+	document.getElementById('videoControls').innerHTML +=  '<a href="#" class="btn btn-primary" onclick="leaveRoom()">Sair</a>';
 }
-*/
+
+function leaveRoom () {
+	socket.emit ('leaveRoom');
+}
+
+function reloadPage () {
+	location.replace(url);
+}
+
+function onPlayerReady (event) {
+	var hash = window.location.hash;
+	var roomID = hash.substr(2, hash.length);
+	enterRoom(roomID);
+}
+
+function copy () {
+	var linkCopy = document.getElementById('roomURL');
+	linkCopy.select();
+	document.execCommand("Copy");
+	document.getElementById('alerts').innerHTML =   '<hr>' + '<div class="alert alert-success fade in">' + '<p>' + 'Link copiado com sucesso' + '<p>' + '</div>';
+}
