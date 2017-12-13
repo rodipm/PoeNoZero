@@ -7,6 +7,7 @@ class Room {
 		this.roomID = roomID;
 		this.clientsConnected = new Array();
 		this.videoID = videoID;
+		this.videoPlaying = false;
 	}
 
 	getRoomID () {
@@ -18,9 +19,16 @@ class Room {
 		return this.videoID;
 	}
 
+	getVideoPlaying () {
+		return this.videoPlaying;
+	}
+
+	setVideoPlaying (state) {
+		this.videoPlaying = state;
+	}
+
 	addClient (client) {
 		this.clientsConnected.push(client);
-		console.log(this.clientsConnected);
 	}
 
 	removeClient (client) {

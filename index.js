@@ -7,6 +7,7 @@ var socket = require('socket.io');
 var io = socket(server);
 console.log("Server ON");
 
+//require das classes
 const Client = require('./Client.js');
 const Room = require('./Room.js');
 
@@ -24,7 +25,6 @@ function newConnection (socket) {
 		newRooms.push({roomID: rooms[i].getRoomID()});
 	}
 	socket.emit('updateRooms', newRooms);
-	console.log("New client connected: " + newClient.getClientID());
 	
 	//event listeners
 	socket.on('disconnect', clientDisconnection);
@@ -32,11 +32,13 @@ function newConnection (socket) {
 	socket.on('enterRoom', enterRoom);
 	socket.on('leaveRoom', leaveRoom);
 	socket.on('ready', ready);
+	socket.on('ownerPlay', ownerPlay);
+	socket.on('ownerPause', ownerPause);
+	socket.on('playStartedVideo', playStartedVideo);
 	
 	function clientDisconnection () {
 		for (var i = 0; i < clients.length; i++) {
 			if (clients[i].getClientID() == newClient.getClientID()) {
-				console.log("Client disconnect: " + newClient.getClientID());
 				leaveRoom();
 				delete clients.splice(i, 1);
 			}
@@ -44,14 +46,12 @@ function newConnection (socket) {
 	}
 
 	function createRoom (videoID) {
-		console.log("Tentando cirar sala");
 		for (var i = 0; i < rooms.length; i++) {
 			if (rooms[i].getRoomID() == newClient.getClientID()) {
 				return;
 			}
 		}
 
-		console.log("Criando sala: " + newClient.getClientID());
 		var newRoom = new Room(newClient.getClientID(), videoID);
 		rooms.push(newRoom);
 
@@ -73,7 +73,10 @@ function newConnection (socket) {
 				newClient.setInRoomID(roomID);
 				socket.join(rooms[i].getRoomID());
 				updateClient();
-				socket.emit('loadVideo', rooms[i].getVideoID());
+				socket.emit('loadVideo', {videoID: rooms[i].getVideoID(), videoPlaying: rooms[i].getVideoPlaying()});
+
+				if (rooms[i].getVideoPlaying())
+					socket.to(rooms[i].getRoomID()).emit('getVideoTime', newClient.getClientID());
 				return;
 			}
 		}
@@ -106,7 +109,7 @@ function newConnection (socket) {
 					socket.broadcast.emit('updateRooms', newRooms);
 				}
 
-				else if (rooms[i].clientsReady() == rooms[i].numberOfClients()) {
+				else if (rooms[i].clientsReady() == rooms[i].numberOfClients() && !rooms[i].getVideoPlaying()) {
 					io.in(rooms[i].getRoomID()).emit('playVideo');
 				}
 			}
@@ -127,11 +130,37 @@ function newConnection (socket) {
 			}
 			if (rooms[i].clientsReady() == rooms[i].numberOfClients()) {
 				io.in(rooms[i].getRoomID()).emit('playVideo');
+				rooms[i].setVideoPlaying(true);
 			}
 		}
 	}
 
 	function updateClient () {
 		socket.emit('updateClient', {ready: newClient.getClientReady(), inRoom: newClient.getInRoom(), inRoomID: newClient.getInRoomID(), myID: newClient.getClientID()});
+	}
+
+	function ownerPlay (roomID) {
+		io.in(roomID).emit('playVideo');
+
+		for (var i = 0; i < rooms.length; i++) {
+			if (rooms[i].getRoomID() == roomID) {
+				rooms[i].setVideoPlaying(true);
+			}
+		}
+	}
+
+	function ownerPause (roomID) {
+		io.in(roomID).emit('pauseVideo');
+
+
+		for (var i = 0; i < rooms.length; i++) {
+			if (rooms[i].getRoomID() == roomID) {
+				rooms[i].setVideoPlaying(false);
+			}
+		}
+	}
+
+	function playStartedVideo (data) {
+		socket.to(data.requestID).emit('playStartedVideo', data.time);
 	}
 }
